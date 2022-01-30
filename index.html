@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            font-family: sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            flex-flow: row;
+            width: 100%;
+            height: 100%;
+            background-color: yellow;
+            position: absolute;
+        }
+
+        .container div {
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .container div h2 {
+            position: absolute;
+            width: 50vw;
+            text-align: center;
+            color: white;
+        }
+
+        #three {
+
+            background-color: crimson;
+        }
+
+        #canvas {
+            background-color: dodgerblue;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r125/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+
+    <div class="container">
+        <div id="three" class="panel">
+            <h2>Scene</h2>
+        </div>
+        <!-- <div id="canvas" class="panel">
+            <h2>Plane projection</h2>
+        </div> -->
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
