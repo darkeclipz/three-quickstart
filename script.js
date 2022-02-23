@@ -31,8 +31,8 @@ class Renderer {
         this.deltaTime = (currentTime - this.previousTime) / 1000;
         this.time += this.deltaTime;
         this.previousTime = currentTime;
-        requestAnimationFrame(() => this.animate(this.time, this.deltaTime));
-        this.animFuncs.forEach(f => f());
+        requestAnimationFrame(() => this.animate());
+        this.animFuncs.forEach(f => f(this.time, this.deltaTime));
         this.renderer.render(this.scene, this.camera);
     }
 
