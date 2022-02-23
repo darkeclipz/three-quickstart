@@ -22,8 +22,16 @@ class Renderer {
         this.animate();
     }
 
+    previousTime = +new Date();
+    deltaTime = 0;
+    time = 0;
+
     animate() {
-        requestAnimationFrame(() => this.animate());
+        let currentTime = +new Date();
+        this.deltaTime = (currentTime - this.previousTime) / 1000;
+        this.time += this.deltaTime;
+        this.previousTime = currentTime;
+        requestAnimationFrame(() => this.animate(this.time, this.deltaTime));
         this.animFuncs.forEach(f => f());
         this.renderer.render(this.scene, this.camera);
     }
@@ -63,16 +71,13 @@ class Renderer {
 }
 
 const renderer = new Renderer("three");
-let previousTime = +new Date();
-let deltaTime = 0;
-let time = 0;
 
-renderer.animFuncs.push(() => {
 
-    let currentTime = +new Date();
-    deltaTime = (currentTime - previousTime) / 1000;
-    time += deltaTime;
-    previousTime = currentTime;
+const I = new THREE.Vector3(1, 0, 0);
+const J = new THREE.Vector3(0, 1, 0);
+const K = new THREE.Vector3(0, 0, 1);
+
+renderer.animFuncs.push((t, dt) => {
 
     // Setup
     renderer.scene.clear();
@@ -86,61 +91,92 @@ renderer.animFuncs.push(() => {
     const light = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
     renderer.scene.add(light);
 
-    // First we define a cylinder, which is pointing upward by default (0, 1, 0).
-    const C = new THREE.Vector3(1, 2, 1);
-    const C_up = new THREE.Vector3(0, 1, 0);
-    const cylinder = renderer.addCylinder(C, 0.2, 1);
+    const point = createSphere();
+    renderer.scene.add(point);
+    point.scale.set(0.1, 0.1, 0.1);
+    point.position.set(2.5, 0, 2.5);
 
-    // The cylinder can have a rotation, this is defined by the up vector in the cylinder, and
-    // we need to rotate the object so that it looks in this direction.
-    const C_dir = new THREE.Vector3(Math.cos(time), Math.cos(time) + Math.sin(time), -Math.sin(time));
-    C_dir.normalize();
+    const cylinder1 = createCylinder();
+    const cylinder2 = createCylinder();
 
-    // Axis that we want to rotate around, is the cross product of UP x DIR.
-    const C_axis = C_up.clone().cross(C_dir);
+    renderer.scene.add(cylinder1);
+    renderer.scene.add(cylinder2);
 
-    // Axis must be normalized!
-    C_axis.normalize();
+    cylinder1.position.set(0, 0.5, 0.5);
+    cylinder2.position.copy(cylinder1.position);
+    cylinder2.rotation.x = Math.PI / 2;
+    cylinder2.position.add(new THREE.Vector3(0, 1, 1));
 
-    // Find the angle between the two vectors.
-    const C_angle = C_up.angleTo(C_dir);
-
-    // Rotate the cylinder correctly.
-    cylinder.rotateOnAxis(C_axis, C_angle);
-
-    // renderer.addArrow(C, C_up, 0xffff00);
-    renderer.addArrow(C, C_dir, 0x00ff00);
-    renderer.addArrow(C, C_axis, 0x0000ff);
-
-    // Draw a line from A to B
-    const A = new THREE.Vector3(0, 2.7, 0);
-    const B = new THREE.Vector3(3, 1.2, 3);
-
-    renderer.addLine(A, B, 0xffff00);
-
-    const C_dir_normal = C_axis.clone();
-    C_dir_normal.cross(C_dir);
-    renderer.addArrow(C, C_dir_normal, 0xff0000);
-
-    // Draw a plane
-    const plane = renderer.addPlane();
-    plane.scale.multiplyScalar(0.5);
-    const P_up = new THREE.Vector3(0, 0, 1);
-    //P_up.lookAt(C_dir);
-    plane.lookAt(C_dir);
-    //renderer.addArrow(plane.position, P_up, 0xffff00);
-    //plane.rotation.copy(cylinder.rotation);
+    const group = new THREE.Group();
 
 
-    plane.position.add(C);
-    const offset = C_dir.clone();
-    offset.multiplyScalar(0.501);
-    plane.position.sub(offset);
+    group.add(cylinder1);
+    group.add(cylinder2);
 
-    const plane2 = renderer.addPlane();
-    plane2.scale.multiplyScalar(0.5);
-    plane2.lookAt(C_dir);
-    plane2.position.add(C);
-    plane2.position.add(offset);
+    renderer.scene.add(group);
 
+    const bbox = new THREE.Box3().setFromObject(group);
+    const helper = new THREE.Box3Helper(bbox, 0xffff00);
+    helper.position.set(0, 0, 0);
+    renderer.scene.add(helper);
+    const axes = new THREE.AxesHelper(1);
+    renderer.scene.add(axes);
+    group.add(helper);
+    group.add(axes);
+
+    group.position.set(2.5, 0, 3.5);
+
+    rotateAroundPointOnAxisX(group, point.position, t);
+    rotateAroundPointOnAxisY(group, point.position, t);
+    rotateAroundPointOnAxisZ(group, point.position, t);
 });
+
+function rotateAroundPointOnAxisX(object, point, angle) {
+    if (object.type === "Group") {
+        object.position.sub(point);
+        const matrix = new THREE.Matrix4();
+        matrix.makeRotationX(angle);
+        object.applyMatrix4(matrix);
+        object.position.add(point);
+    }
+}
+
+function rotateAroundPointOnAxisY(object, point, angle) {
+    if (object.type === "Group") {
+        object.position.sub(point);
+        const matrix = new THREE.Matrix4();
+        matrix.makeRotationY(angle);
+        object.applyMatrix4(matrix);
+        object.position.add(point);
+    }
+}
+
+function rotateAroundPointOnAxisZ(object, point, angle) {
+    if (object.type === "Group") {
+        object.position.sub(point);
+        const matrix = new THREE.Matrix4();
+        matrix.makeRotationZ(angle);
+        object.applyMatrix4(matrix);
+        object.position.add(point);
+    }
+}
+
+function createCylinder() {
+    const geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+    return new THREE.Mesh(geometry, material);
+}
+
+function createSphere() {
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+    return new THREE.Mesh(geometry, material);
+}
+
+function rotateAroundWorldAxis(obj, axis, radians) {
+    let rotWorldMatrix = new THREE.Matrix4();
+    rotWorldMatrix.makeRotationAxis(axis.normalize(), radians);
+    rotWorldMatrix.multiply(obj.matrix);
+    obj.matrix = rotWorldMatrix;
+    obj.setRotationFromMatrix(obj.matrix);
+}
